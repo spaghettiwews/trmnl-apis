@@ -1,5 +1,6 @@
 import logging
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from flask import Blueprint, jsonify, request
@@ -41,21 +42,28 @@ def merge_responses():
         arg.strip() for arg in api_string.split(",") if arg.strip()
     ]
 
-    for arg in query_args:
-        fn = DISPATCH.get(arg)
-        if fn is None:
-            result[f"error_{arg}"] = f"Unknown API: {arg}"
-            logger.warning(f"Merge requested unknown API: {arg}")
-            continue
+    # Validate all args up front so unknown keys are reported without firing any fetch
+    unknown = [arg for arg in query_args if arg not in DISPATCH]
+    for arg in unknown:
+        result[f"error_{arg}"] = f"Unknown API: {arg}"
+        logger.warning(f"Merge requested unknown API: {arg}")
 
-        try:
-            response = fn()
-            if isinstance(response, dict):
-                result = {**result, **response}
-            else:
-                result[arg] = response
-        except Exception as e:
-            logger.error(f"Failed to call API {arg}: {e}")
-            result[f"error_{arg}"] = f"Failed to call API {arg}: {str(e)}"
+    valid_args = [arg for arg in query_args if arg in DISPATCH]
+
+    # Fetch all valid APIs in parallel — total latency is max(times) not sum(times)
+    with ThreadPoolExecutor(max_workers=len(valid_args) or 1) as executor:
+        futures = {executor.submit(DISPATCH[arg]): arg for arg in valid_args}
+
+        for future in as_completed(futures):
+            arg = futures[future]
+            try:
+                response = future.result()
+                if isinstance(response, dict):
+                    result = {**result, **response}
+                else:
+                    result[arg] = response
+            except Exception as e:
+                logger.error(f"Failed to call API {arg}: {e}")
+                result[f"error_{arg}"] = f"Failed to call API {arg}: {str(e)}"
 
     return jsonify(result), 200
