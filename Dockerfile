@@ -13,4 +13,4 @@ COPY . /app
 RUN uv sync --locked
 
 EXPOSE 8000
-CMD ["uv", "run", "gunicorn", "-w", "1", "--timeout", "120", "-b", "0.0.0.0:8000", "main:create_app()"]
+CMD ["uv", "run", "gunicorn", "-w", "4", "--timeout", "120", "-b", "0.0.0.0:8000", "main:create_app()"]
