@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Blueprint, jsonify
 
 import helpers
+from helpers import ttl_cache
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -16,6 +17,7 @@ hackernews_bp = Blueprint("hackernews", __name__, url_prefix="/")
 TIMEOUT = int(os.getenv("TIMEOUT", "60"))
 
 
+@ttl_cache(seconds=600)
 def fetch_headlines() -> list:
     """
     Fetches top story ids and headlines from HN.
@@ -43,9 +45,13 @@ def fetch_headlines() -> list:
     with ThreadPoolExecutor(max_workers=len(top_ids)) as executor:
         futures = {executor.submit(fetch_item, id): i for i, id in enumerate(top_ids)}
         for future in as_completed(futures):
-            headlines[futures[future]] = future.result()
+            idx = futures[future]
+            try:
+                headlines[idx] = future.result()
+            except Exception as e:
+                logger.warning(f"Skipping story {top_ids[idx]}: {e}")
 
-    return headlines
+    return [h for h in headlines if h is not None]
 
 
 @hackernews_bp.route("/api/headlines")

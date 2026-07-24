@@ -1,5 +1,8 @@
 import json
+import threading
+import time
 from datetime import datetime, timezone
+from functools import wraps
 
 import requests
 from dateutil.relativedelta import relativedelta
@@ -9,6 +12,31 @@ class ApiCallError(Exception):
     def __init__(self, message: str, status_code: int = 500):
         super().__init__(message)
         self.status_code = status_code
+
+
+def ttl_cache(seconds: int):
+    """Thread-safe in-memory TTL cache. Each decorated function has its own store."""
+    def decorator(fn):
+        _cache: dict = {}
+        _lock = threading.Lock()
+
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            now = time.monotonic()
+            key = (args, tuple(sorted(kwargs.items())))
+            with _lock:
+                entry = _cache.get(key)
+                if entry is not None:
+                    result, expires_at = entry
+                    if now < expires_at:
+                        return result
+            result = fn(*args, **kwargs)
+            with _lock:
+                _cache[key] = (result, now + seconds)
+            return result
+
+        return wrapper
+    return decorator
 
 
 def call_api(url, headers, timeout, logger):
