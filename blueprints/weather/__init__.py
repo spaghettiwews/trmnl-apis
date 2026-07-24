@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify
 
 import helpers
+from helpers import ttl_cache
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -21,6 +22,7 @@ headers = {}
 TIMEOUT: Optional[int] = int(os.getenv("TIMEOUT", "60"))
 
 
+@ttl_cache(seconds=300)
 def fetch_weather() -> dict:
     return helpers.call_api(weather_api_url, headers, TIMEOUT, logger).json()
 

@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, jsonify
 
 import helpers
+from helpers import ttl_cache
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -38,6 +39,7 @@ def get_random_photo():
         return jsonify({"error": str(e)}), e.status_code
 
 
+@ttl_cache(seconds=3600)
 def get_photos():
     """
     Fetches a list of photo assets from the configured album ID.
