@@ -2,18 +2,12 @@ import logging
 import os
 import random
 
-from dotenv import load_dotenv
 from flask import Blueprint, jsonify
 
 import helpers
 from helpers import ttl_cache
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 
 BASE_API_URL = os.getenv("BASE_PHOTOS_API_URL")
 API_KEY = os.getenv("API_KEY")

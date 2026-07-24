@@ -11,9 +11,6 @@ from blueprints.photos import get_photos
 from blueprints.todos import fetch_from_calendar, generate_countdowns
 from blueprints.weather import fetch_weather
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 merge_bp = Blueprint("merge", __name__, url_prefix="/")
