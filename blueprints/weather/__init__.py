@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 weather_bp = Blueprint("weather", __name__, url_prefix="/")
 
-weather_api_url = "https://wttr.in/48.2644222,11.5887688?format=j1"
+WEATHER_LOCATION: str = os.getenv("WEATHER_LOCATION", "48.2644222,11.5887688")
+weather_api_url = f"https://wttr.in/{WEATHER_LOCATION}?format=j1"
 headers = {}
 TIMEOUT: Optional[int] = int(os.getenv("TIMEOUT", "60"))
 
