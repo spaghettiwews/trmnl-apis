@@ -3,54 +3,57 @@ from datetime import datetime, timezone
 
 import requests
 from dateutil.relativedelta import relativedelta
-from flask import jsonify
+
+
+class ApiCallError(Exception):
+    def __init__(self, message: str, status_code: int = 500):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def call_api(url, headers, timeout, logger):
-    data = None
-
     try:
         response = requests.get(url, headers=headers, timeout=timeout)
 
         # Check for HTTP errors (4xx or 5xx)
         response.raise_for_status()
 
-        data = response
         logger.info("Successfully received response from the API.")
+        return response
 
     except requests.exceptions.Timeout:
         logger.error(f"API request timed out after {timeout} seconds.")
-        return jsonify({"error": "API request timed out."}), 504
+        raise ApiCallError("API request timed out.", 504)
     except requests.exceptions.HTTPError as e:
         # Specific logging for bad status codes (400, 404, 500, etc.)
         logger.error(
             f"HTTP Error retrieving response (Status: {e.response.status_code}): {e}"
         )
-        return jsonify(
-            {"error": f"API returned an error: {e.response.reason}"}
-        ), e.response.status_code
+        raise ApiCallError(
+            f"API returned an error: {e.response.reason}", e.response.status_code
+        )
     except requests.exceptions.ConnectionError as e:
         # Catches general connection/DNS errors
         logger.critical(
             f"Connection error encountered: {e}. Check network connectivity."
         )
-        return jsonify(
-            {"error": "Could not connect to the API. Please check connectivity."}
-        ), 503
+        raise ApiCallError(
+            "Could not connect to the API. Please check connectivity.", 503
+        )
     except requests.exceptions.RequestException as e:
         # Catches any other requests related error
         logger.exception(f"An unexpected request error occurred: {e}")
-        return jsonify({"error": "An unexpected network error occurred."}), 503
+        raise ApiCallError("An unexpected network error occurred.", 503)
     except json.JSONDecodeError:
         # Catches cases where the response is not valid JSON
         logger.error("Received response was not valid JSON.")
-        return jsonify({"error": "The API returned invalid data format."}), 500
+        raise ApiCallError("The API returned invalid data format.", 500)
+    except ApiCallError:
+        raise
     except Exception as e:
         # Catches any other unexpected Python error
         logger.exception(f"An unexpected server error occurred during fetching: {e}")
-        return jsonify({"error": "An internal server error occurred."}), 500
-
-    return data
+        raise ApiCallError("An internal server error occurred.", 500)
 
 
 def format_date(timestamp: str, format: str = "relative", now: datetime = None) -> str:
