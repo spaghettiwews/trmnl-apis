@@ -1,5 +1,6 @@
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from flask import Blueprint, jsonify
 
@@ -28,16 +29,21 @@ def fetch_headlines() -> list:
         logger,
     ).json()
 
-    headlines = []
-    for id in ids[:10]:
-        headlines.append(
-            helpers.call_api(
-                f"https://hacker-news.firebaseio.com/v0/item/{id}.json",
-                "",
-                TIMEOUT,
-                logger,
-            ).json()
-        )
+    def fetch_item(id):
+        return helpers.call_api(
+            f"https://hacker-news.firebaseio.com/v0/item/{id}.json",
+            "",
+            TIMEOUT,
+            logger,
+        ).json()
+
+    top_ids = ids[:10]
+    headlines = [None] * len(top_ids)
+
+    with ThreadPoolExecutor(max_workers=len(top_ids)) as executor:
+        futures = {executor.submit(fetch_item, id): i for i, id in enumerate(top_ids)}
+        for future in as_completed(futures):
+            headlines[futures[future]] = future.result()
 
     return headlines
 
