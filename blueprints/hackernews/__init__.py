@@ -15,23 +15,21 @@ hackernews_bp = Blueprint("hackernews", __name__, url_prefix="/")
 TIMEOUT = int(os.getenv("TIMEOUT", "60"))
 
 
-@hackernews_bp.route("/api/headlines")
-def get_headlines():
+def fetch_headlines() -> list:
     """
     Fetches top story ids and headlines from HN.
     """
-
-    logger.info(f"Attempting to fetch HN stories")
+    logger.info("Attempting to fetch HN stories")
 
     ids = helpers.call_api(
         "https://hacker-news.firebaseio.com/v0/topstories.json",
         "",
         TIMEOUT,
         logger,
-    )
-    headlines = []
+    ).json()
 
-    for id in ids.json()[:10]:
+    headlines = []
+    for id in ids[:10]:
         headlines.append(
             helpers.call_api(
                 f"https://hacker-news.firebaseio.com/v0/item/{id}.json",
@@ -41,4 +39,12 @@ def get_headlines():
             ).json()
         )
 
-    return jsonify(headlines), 200
+    return headlines
+
+
+@hackernews_bp.route("/api/headlines")
+def get_headlines():
+    try:
+        return jsonify(fetch_headlines()), 200
+    except helpers.ApiCallError as e:
+        return jsonify({"error": str(e)}), e.status_code

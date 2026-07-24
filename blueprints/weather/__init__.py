@@ -21,7 +21,13 @@ headers = {}
 TIMEOUT: Optional[int] = int(os.getenv("TIMEOUT", "60"))
 
 
+def fetch_weather() -> dict:
+    return helpers.call_api(weather_api_url, headers, TIMEOUT, logger).json()
+
+
 @weather_bp.route("/api/weather")
 def get_weather():
-    response = helpers.call_api(weather_api_url, headers, TIMEOUT, logger).json()
-    return jsonify(response), 200
+    try:
+        return jsonify(fetch_weather()), 200
+    except helpers.ApiCallError as e:
+        return jsonify({"error": str(e)}), e.status_code

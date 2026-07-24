@@ -1,24 +1,32 @@
 import logging
-import os
+import random
 from typing import List
 
-from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 
-import helpers
+from blueprints.deutsch import get_random_word
+from blueprints.hackernews import fetch_headlines
+from blueprints.photos import get_photos
+from blueprints.todos import fetch_from_calendar, generate_countdowns
+from blueprints.weather import fetch_weather
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-load_dotenv()
-
-BASE_API_URL = os.getenv("BASE_API_URL")
-TIMEOUT = int(os.getenv("TIMEOUT", "60"))
-
 merge_bp = Blueprint("merge", __name__, url_prefix="/")
-headers = {}
+
+# Maps the query param value (e.g. "api/weather") to a callable that returns
+# plain Python data. No HTTP calls back to self — eliminates the worker deadlock.
+DISPATCH = {
+    "api/weather": fetch_weather,
+    "api/headlines": fetch_headlines,
+    "api/photos": lambda: random.choice(get_photos()),
+    "api/calendar": fetch_from_calendar,
+    "api/countdowns": generate_countdowns,
+    "api/words": get_random_word,
+}
 
 
 @merge_bp.route("/api/merge")
@@ -34,13 +42,20 @@ def merge_responses():
     ]
 
     for arg in query_args:
-        try:
-            response = helpers.call_api(
-                f"{BASE_API_URL}/{arg}", headers, TIMEOUT, logger
-            ).json()
-            result = {**result, **response}
+        fn = DISPATCH.get(arg)
+        if fn is None:
+            result[f"error_{arg}"] = f"Unknown API: {arg}"
+            logger.warning(f"Merge requested unknown API: {arg}")
+            continue
 
+        try:
+            response = fn()
+            if isinstance(response, dict):
+                result = {**result, **response}
+            else:
+                result[arg] = response
         except Exception as e:
-            result[f"error"] = f"Failed to call API {BASE_API_URL}/{arg}: {str(e)}"
+            logger.error(f"Failed to call API {arg}: {e}")
+            result[f"error_{arg}"] = f"Failed to call API {arg}: {str(e)}"
 
     return jsonify(result), 200

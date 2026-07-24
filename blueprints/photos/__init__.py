@@ -29,7 +29,13 @@ def get_random_photo():
     """
     Calls get_photos and filters the response to one result
     """
-    return jsonify(random.choice(get_photos())), 200
+    try:
+        photos = get_photos()
+        if not photos:
+            return jsonify({"error": "No photos found."}), 404
+        return jsonify(random.choice(photos)), 200
+    except helpers.ApiCallError as e:
+        return jsonify({"error": str(e)}), e.status_code
 
 
 def get_photos():
@@ -47,7 +53,7 @@ def get_photos():
 
     if not assets:
         logger.warning("The API response contained no assets.")
-        return jsonify(results), 200
+        return results
 
     logger.info(f"Found {len(assets)} assets to process.")
 
