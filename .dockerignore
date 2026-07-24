@@ -1,0 +1,8 @@
+.env
+.venv/
+.dockerignore
+.gitignore
+.python-version
+Dockerfile
+.git/
+icons/
