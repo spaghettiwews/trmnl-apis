@@ -56,6 +56,11 @@ def merge_responses():
             try:
                 response = future.result()
                 if isinstance(response, dict):
+                    collisions = [k for k in response if k in result]
+                    if collisions:
+                        logger.warning(
+                            f"Key collision from '{arg}' — overwriting keys: {collisions}"
+                        )
                     result = {**result, **response}
                 else:
                     result[arg] = response
