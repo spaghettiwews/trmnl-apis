@@ -6,14 +6,11 @@ from collections import defaultdict
 
 from flask import Blueprint, jsonify
 
+logger = logging.getLogger(__name__)
+
 base_dir = os.path.dirname(__file__)
 json_path = os.path.join(base_dir, "german.json")
 level = "a2"
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 # load_dotenv()
 

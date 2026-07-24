@@ -7,9 +7,6 @@ from flask import Blueprint, jsonify
 import helpers
 from helpers import ttl_cache
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
 
 hackernews_bp = Blueprint("hackernews", __name__, url_prefix="/")
