@@ -2,18 +2,12 @@ import logging
 import os
 from typing import Optional
 
-from dotenv import load_dotenv
 from flask import Blueprint, jsonify
 
 import helpers
 from helpers import ttl_cache
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 
 weather_bp = Blueprint("weather", __name__, url_prefix="/")
 

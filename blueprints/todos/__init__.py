@@ -5,17 +5,11 @@ from typing import Any, Dict, List, Optional
 
 from caldav import DAVClient
 from dateutil.parser import parse
-from dotenv import load_dotenv
 from flask import Blueprint, jsonify
 
 import helpers
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
 logger = logging.getLogger(__name__)
-
-load_dotenv()
 
 CALENDAR_URL: Optional[str] = os.getenv("CALENDAR_URL")
 CALENDAR_USER: Optional[str] = os.getenv("CALENDAR_USER")

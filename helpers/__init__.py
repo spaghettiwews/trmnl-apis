@@ -1,4 +1,3 @@
-import json
 import threading
 import time
 from datetime import datetime, timezone
@@ -72,10 +71,6 @@ def call_api(url, headers, timeout, logger):
         # Catches any other requests related error
         logger.exception(f"An unexpected request error occurred: {e}")
         raise ApiCallError("An unexpected network error occurred.", 503)
-    except json.JSONDecodeError:
-        # Catches cases where the response is not valid JSON
-        logger.error("Received response was not valid JSON.")
-        raise ApiCallError("The API returned invalid data format.", 500)
     except ApiCallError:
         raise
     except Exception as e:
